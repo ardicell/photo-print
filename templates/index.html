@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <title>Photo Print Generator</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        /* Reset dasar */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f9f9f9;
+            color: #333;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 10px;
+        }
+
+        .form-container {
+            width: 100%;
+            max-width: 400px;
+            background: #fff;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            font-size: 18px;
+            text-align: center;
+            margin-bottom: 15px;
+        }
+
+        label {
+            font-size: 14px;
+            font-weight: bold;
+            margin-bottom: 5px;
+            display: block;
+        }
+
+        input[type="file"] {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            margin-bottom: 10px;
+        }
+
+        select, input[type="number"] {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            margin-bottom: 10px;
+        }
+
+        button {
+            width: 100%;
+            background-color: #4CAF50;
+            color: white;
+            padding: 12px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        button:hover {
+            background-color: #45a049;
+        }
+
+        .preview img {
+            width: 70px;
+            height: auto;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 5px;
+            margin: 5px;
+        }
+
+        .preview div {
+            text-align: center;
+            font-size: 12px;
+            color: #555;
+            margin-bottom: 10px;
+        }
+
+        .info-box {
+            background-color: #f1f1f1;
+            padding: 10px;
+            border-radius: 5px;
+            margin-top: 10px;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="form-container">
+        <h1>Photo Print Generator</h1>
+        <form action="/" method="post" enctype="multipart/form-data" id="uploadForm">
+            <!-- Input File -->
+            <label for="images">Pilih Gambar:</label>
+            <input type="file" name="images" id="images" multiple required>
+            <div id="sizeSelectors"></div>
+
+            <!-- Tombol Submit -->
+            <button type="submit">Generate PDF</button>
+        </form>
+        <div class="preview" id="preview"></div>
+    </div>
+
+    <script>
+        document.getElementById("images").addEventListener("change", function(event) {
+            const files = event.target.files;
+            const preview = document.getElementById("preview");
+            const sizeSelectors = document.getElementById("sizeSelectors");
+            preview.innerHTML = "";
+            sizeSelectors.innerHTML = "";
+            const formData = new FormData();
+
+            for (let file of files) {
+                formData.append("images", file);
+
+                // Tampilkan preview gambar
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const div = document.createElement("div");
+                    div.innerHTML = `<img src="${e.target.result}" alt="${file.name}"><p>${file.name}</p>`;
+                    preview.appendChild(div);
+                };
+                reader.readAsDataURL(file);
+
+                // Tambahkan selector ukuran
+                const sizeSelector = document.createElement("div");
+                sizeSelector.innerHTML = `
+                    <label>${file.name}:</label>
+                    <select name="sizes" required>
+                        <option value="3x4">3x4 cm</option>
+                        <option value="4x6">4x6 cm</option>
+                    </select>
+                    <label>Jumlah:</label>
+                    <input type="number" name="quantities" min="1" value="1" required>`;
+                sizeSelectors.appendChild(sizeSelector);
+            }
+
+            // Kirim gambar untuk dianalisis dan set ukuran otomatis
+            fetch("/analyze", { method: "POST", body: formData })
+                .then(response => response.json())
+                .then(data => {
+                    data.forEach((item, index) => {
+                        const selector = sizeSelectors.children[index].querySelector("select");
+                        selector.value = item.nearest_size; // Pilih ukuran otomatis
+
+                        // Tampilkan info
+                        const info = document.createElement("div");
+                        info.classList.add('info-box');
+                        info.innerHTML = `
+                            <p>Ukuran Otomatis: ${item.nearest_size}</p>
+                            <p>Rasio Akurasi: ${item.accuracy.toFixed(2)}%</p>`;
+                        preview.children[index].appendChild(info);
+                    });
+                });
+        });
+    </script>
+</body>
+</html>
