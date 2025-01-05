@@ -1,0 +1,6 @@
+
+Flask==2.0.1
+Pillow==8.4.0
+psd-tools==1.9.30
+reportlab==3.6.8
+gunicorn==20.1.0
